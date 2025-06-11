@@ -10,21 +10,60 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Mail, Phone, MapPin, Clock, MessageSquare, Headphones, Users, Zap } from "lucide-react"
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Clock,
+  MessageSquare,
+  Headphones,
+  Users,
+  Zap,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react"
 import { Header } from "@/components/header"
+
+// Actualizar las importaciones para incluir las funciones de Supabase
+import { crearConsulta } from "@/lib/consultas"
 
 export function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [mensajeExito, setMensajeExito] = useState(false)
+  const [mensajeError, setMensajeError] = useState("")
 
+  // En la función handleSubmit, reemplazar la simulación con la llamada real a Supabase:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simular envío
-    setTimeout(() => {
+    try {
+      const formData = new FormData(e.target as HTMLFormElement)
+
+      const consultaData = {
+        nombre: formData.get("firstName") as string,
+        apellido: formData.get("lastName") as string,
+        email: formData.get("email") as string,
+        empresa: (formData.get("company") as string) || undefined,
+        tipo_consulta: formData.get("subject") as any,
+        mensaje: formData.get("message") as string,
+      }
+
+      await crearConsulta(consultaData)
+
+      // Limpiar formulario
+      ;(e.target as HTMLFormElement).reset()
+
+      // Mostrar mensaje de éxito mejorado
+      setMensajeExito(true)
+      setTimeout(() => setMensajeExito(false), 5000)
+    } catch (error) {
+      console.error("Error al enviar consulta:", error)
+      setMensajeError("Hubo un error al enviar tu mensaje. Por favor, inténtalo de nuevo.")
+      setTimeout(() => setMensajeError(""), 5000)
+    } finally {
       setIsSubmitting(false)
-      alert("¡Mensaje enviado! Te responderemos pronto.")
-    }, 2000)
+    }
   }
 
   const contactMethods = [
@@ -95,33 +134,59 @@ export function ContactPage() {
               <CardHeader>
                 <CardTitle>Envíanos un Mensaje</CardTitle>
                 <CardDescription>Completa el formulario y te responderemos lo antes posible</CardDescription>
+                {mensajeExito && (
+                  <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <div>
+                        <h4 className="font-semibold text-green-800">¡Mensaje enviado exitosamente!</h4>
+                        <p className="text-sm text-green-700">
+                          Hemos recibido tu consulta. Nuestro equipo te responderá en menos de 24 horas.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {mensajeError && (
+                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-red-600" />
+                      <div>
+                        <h4 className="font-semibold text-red-800">Error al enviar mensaje</h4>
+                        <p className="text-sm text-red-700">{mensajeError}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">Nombre</Label>
-                      <Input id="firstName" placeholder="Tu nombre" required />
+                      {/* Actualizar los campos del formulario para que tengan los nombres correctos: */}
+                      <Input id="firstName" name="firstName" placeholder="Tu nombre" required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Apellido</Label>
-                      <Input id="lastName" placeholder="Tu apellido" required />
+                      <Input id="lastName" name="lastName" placeholder="Tu apellido" required />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="tu@email.com" required />
+                    <Input id="email" type="email" name="email" placeholder="tu@email.com" required />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="company">Empresa (Opcional)</Label>
-                    <Input id="company" placeholder="Tu empresa o organización" />
+                    <Input id="company" name="company" placeholder="Tu empresa o organización" />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="subject">Tipo de Consulta</Label>
-                    <Select>
+                    <Select name="subject">
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona el tipo de consulta" />
                       </SelectTrigger>
@@ -138,7 +203,13 @@ export function ContactPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="message">Mensaje</Label>
-                    <Textarea id="message" placeholder="Cuéntanos cómo podemos ayudarte..." rows={6} required />
+                    <Textarea
+                      id="message"
+                      name="message"
+                      placeholder="Cuéntanos cómo podemos ayudarte..."
+                      rows={6}
+                      required
+                    />
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
